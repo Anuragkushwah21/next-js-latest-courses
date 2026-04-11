@@ -1,9 +1,13 @@
+// app/layout.tsx
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
+import SessionProviderWrapper from "./providers/SessionProviderWrapper";
+import { getServerSession } from "next-auth";      // <- change import
+import { authOptions } from "@/lib/auth";
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -22,11 +26,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const session = await getServerSession(authOptions);
+
   return (
     <html lang="en">
       <head>
@@ -37,9 +43,11 @@ export default function RootLayout({
       </head>
 
       <body className="font-sans antialiased">
-        <Navbar />
-        {children}
-        <Footer />
+        <SessionProviderWrapper session={session}>
+          <Navbar />
+          {children}
+          <Footer />
+        </SessionProviderWrapper>
         <Analytics />
       </body>
     </html>

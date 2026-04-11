@@ -1,20 +1,29 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { getServerSession } from "next-auth/next"
-import { authOptions } from "@/lib/auth"
+// app/api/auth/me/route.ts
+import { type NextRequest, NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth";
 
-export async function GET(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    const payload:any = session?.user
+export async function GET(_request: NextRequest) {
+  const session = await getServerSession(authOptions);
 
-    return NextResponse.json({
-      user: {
-        id: payload.id,
-        email: payload.email,
-        role: payload.role,
-      },
-    })
-  } catch (error) {
-    return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+  if (!session || !session.user) {
+    return NextResponse.json(
+      { error: "Not authenticated" },
+      { status: 401 }
+    );
   }
+
+  const user: any = session.user;
+
+  return NextResponse.json(
+    {
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        name: user.name,
+      },
+    },
+    { status: 200 }
+  );
 }

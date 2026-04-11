@@ -7,7 +7,6 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   phone: { type: String },
   isActive: { type: Boolean, default: true },
-  isApproved: { type: Boolean, default: false },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },

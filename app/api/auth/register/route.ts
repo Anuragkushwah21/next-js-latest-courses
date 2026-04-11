@@ -1,38 +1,56 @@
-import { type NextRequest, NextResponse } from "next/server"
-import { connectDB } from "@/lib/mongodb"
-import { User } from "@/models/User"
-import bcrypt from "bcryptjs"
+// app/api/register/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { connectDB } from "@/lib/mongodb";
+import { User } from "@/lib/models/User";
+import bcrypt from "bcryptjs";
 
-export async function POST(request: NextRequest) {
+export async function POST(req: NextRequest) {
   try {
-    await connectDB()
+    await connectDB();
 
-    const { name, email, password } = await request.json()
+    const { name, email, password } = await req.json();
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email })
-    if (existingUser) {
-      return NextResponse.json({ error: "User already exists" }, { status: 400 })
+    if (!name || !email || !password) {
+      return NextResponse.json(
+        { message: "Name, email and password are required" },
+        { status: 400 }
+      );
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12)
+    const existing = await User.findOne({ email });
+    if (existing) {
+      return NextResponse.json(
+        { message: "User already exists" },
+        { status: 409 }
+      );
+    }
 
-    // Create user
-    const user = new User({
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const user = await User.create({
       name,
       email,
       password: hashedPassword,
-    })
+      role: "student", // or whatever default
+    });
 
-    await user.save()
-
-    return NextResponse.json({
-      success: true,
-      message: "User created successfully",
-    })
+    return NextResponse.json(
+      {
+        message: "User registered successfully",
+        data: {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        },
+      },
+      { status: 201 }
+    );
   } catch (error) {
-    console.error("Registration error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("POST /api/register error", error);
+    return NextResponse.json(
+      { message: "Server error" },
+      { status: 500 }
+    );
   }
 }

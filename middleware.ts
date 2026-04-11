@@ -1,41 +1,45 @@
-import { withAuth } from "next-auth/middleware";
+// middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { getToken } from "next-auth/jwt";
 
-// Define routes and roles
-const roleRoutes: { [key: string]: string[] } = {
+const roleRoutes: Record<string, string[]> = {
   admin: ["/admin"],
-  agent: ["/agent"],
-  merchant: ["/merchant"],
+  student: ["/student"],
 };
 
-export default withAuth(
-  function middleware(req: NextRequest) {
-    const { pathname } = req.nextUrl;
-    const userRole = req.nextauth?.token?.role ;
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
 
-    if (!userRole) {
-      return NextResponse.redirect(new URL("/", req.url));
-    }
+  const token = await getToken({ req: request });
+  const role = (token as any)?.role as string | undefined;
 
-    // Check if the path matches a restricted role route
-    for (const [role, paths] of Object.entries(roleRoutes)) {
-      if (paths.some(path => pathname.startsWith(path))) {
-        if (userRole !== role) {
-          return NextResponse.redirect(new URL("/unauthorized", req.url));
+  // Is this a protected role route?
+  const isRoleRoute = Object.values(roleRoutes).some((paths) =>
+    paths.some((path) => pathname.startsWith(path))
+  );
+
+  // Not logged in trying to access role route -> send to login
+  if (!token && isRoleRoute) {
+    const url = new URL("/login", request.url);
+    return NextResponse.redirect(url);
+  }
+
+  // Logged in but wrong role -> unauthorized
+  if (role) {
+    for (const [r, paths] of Object.entries(roleRoutes)) {
+      if (paths.some((path) => pathname.startsWith(path))) {
+        if (role !== r) {
+          const url = new URL("/unauthorized", request.url);
+          return NextResponse.redirect(url);
         }
       }
     }
-
-    return NextResponse.next();
-  },
-  {
-    callbacks: {
-      authorized: ({ token }) => !!token,
-    },
   }
-);
+
+  return NextResponse.next();
+}
 
 export const config = {
-  matcher: ["/admin/:path*", "/agent/:path*", "/merchant/:path*"],
+  matcher: ["/admin/:path*", "/student/:path*", ]
 };

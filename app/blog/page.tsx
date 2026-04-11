@@ -1,99 +1,121 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { useParams } from "next/navigation"
-import axios from "axios"
+import { useEffect, useState } from "react";
 
-interface BlogPost {
-  _id: string
-  name: string
-  importantDates?: string
-  qualification?: string
-  applyForm?: string
-  downloadLink?: string
-}
+type BlogPost = {
+  _id: string;
+  poster: string;
+  link?: string;
+  title: string;
+  description: string;
+  createdAt?: string;
+};
 
 const BlogView = () => {
-  const { postId } = useParams()
-  const [post, setPost] = useState<BlogPost | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [posts, setPosts] = useState<BlogPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!postId) return
-
-    const fetchPost = async () => {
+    const fetchPosts = async () => {
       try {
-        const { data } = await axios.get(`/api/blogview/${postId}`)
-        setPost(data.data)
-        console.log(data)
-      } catch (err) {
-        const errorMessage = axios.isAxiosError(err)
-          ? err.response?.data?.message || err.message
-          : "Error fetching post"
-        console.error("Error fetching post:", errorMessage)
-        setError(errorMessage)
-      } finally {
-        setLoading(false)
-      }
-    }
+        setLoading(true);
+        const res = await fetch("/api/admin/blogs");
+        const data = await res.json();
 
-    fetchPost()
-  }, [postId])
+        if (!res.ok) {
+          throw new Error(data.message || "Failed to fetch blogs");
+        }
+
+        // data.data should be BlogPost[]
+        setPosts(data.data || []);
+      } catch (err: any) {
+        console.error("Error fetching blogs:", err);
+        setError(err.message || "Error fetching blogs");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPosts();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <p className="text-lg text-muted-foreground">Loading blogs...</p>
+      </div>
+    );
+  }
 
   if (error) {
-    return <div className="text-center text-xl font-bold mt-10 text-destructive">Error: {error}</div>
+    return (
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <p className="text-center text-xl font-bold text-destructive">
+          Error: {error}
+        </p>
+      </div>
+    );
+  }
+
+  if (!posts.length) {
+    return (
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <p className="text-lg text-muted-foreground">No blogs found.</p>
+      </div>
+    );
   }
 
   return (
-    <div className="flex justify-center items-center bg-muted p-6 my-20">
-      <div className="max-w-6xl w-full bg-card rounded-xl shadow-lg p-6 transition-transform transform hover:scale-105 hover:shadow-2xl">
-        <h1 className="text-3xl font-bold mb-4 underline text-card-foreground">{post?.name || "No Title Available"}</h1>
+    <div className="bg-muted px-4 py-10 sm:py-16">
+      <div className="max-w-6xl mx-auto grid gap-6 md:grid-cols-2">
+        {posts.map((post) => (
+          <article
+            key={post._id}
+            className="bg-card rounded-xl shadow-lg overflow-hidden flex flex-col"
+          >
+            {post.poster && (
+              <div className="w-full h-48 sm:h-56 overflow-hidden">
+                <img
+                  src={post.poster}
+                  alt={post.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
 
-        {post?.importantDates && (
-          <p className="text-card-foreground text-lg">
-            <span className="font-semibold">Important Dates: </span>
-            {post.importantDates}
-          </p>
-        )}
+            <div className="p-5 sm:p-6 flex flex-col gap-3 flex-1">
+              <header className="space-y-1">
+                <h2 className="text-lg sm:text-xl font-bold text-card-foreground line-clamp-2">
+                  {post.title}
+                </h2>
+                {post.createdAt && (
+                  <p className="text-[11px] sm:text-xs text-muted-foreground">
+                    {new Date(post.createdAt).toLocaleString()}
+                  </p>
+                )}
+              </header>
 
-        {post?.qualification && (
-          <p className="text-lg text-card-foreground">
-            <span className="font-semibold">Qualification: </span>
-            {post.qualification}
-          </p>
-        )}
+              <p className="text-sm sm:text-base text-card-foreground line-clamp-3">
+                {post.description}
+              </p>
 
-        {post?.applyForm && (
-          <p className="text-lg text-primary">
-            <span className="font-semibold text-card-foreground">Apply Form: </span>
-            <a
-              href={post.applyForm}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-primary/80"
-            >
-              {post.applyForm}
-            </a>
-          </p>
-        )}
-
-        {post?.downloadLink && (
-          <p className="text-lg text-primary">
-            <span className="font-semibold text-card-foreground">Download Link: </span>
-            <a
-              href={post.downloadLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-primary/80"
-            >
-              {post.downloadLink}
-            </a>
-          </p>
-        )}
+              {post.link && (
+                <a
+                  href={post.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-auto inline-flex items-center text-sm text-primary underline hover:text-primary/80"
+                >
+                  Visit link
+                </a>
+              )}
+            </div>
+          </article>
+        ))}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default BlogView
+export default BlogView;

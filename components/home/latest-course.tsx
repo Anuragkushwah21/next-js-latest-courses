@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import axios from "axios";
 import { motion } from "framer-motion";
 
 function LatestCourse() {
@@ -11,11 +10,17 @@ function LatestCourse() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [cardsToShow, setCardsToShow] = useState(4);
 
+  // fetch courses (client-side)
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const response = await axios.get("/api/getNumberCourse");
-        setCourses(response.data.recentCourses);
+        setLoading(true);
+        const res = await fetch("/api/courses");
+        if (!res.ok) {
+          throw new Error("Failed to fetch");
+        }
+        const data = await res.json();
+        setCourses(data?.recentCourses || []);
       } catch (err) {
         console.error("Error fetching courses:", err);
         setError("Failed to load courses. Please try again.");
@@ -27,6 +32,7 @@ function LatestCourse() {
     fetchCourses();
   }, []);
 
+  // responsive cards
   useEffect(() => {
     const updateCardsToShow = () => {
       const width = window.innerWidth;
@@ -46,13 +52,21 @@ function LatestCourse() {
     return () => window.removeEventListener("resize", updateCardsToShow);
   }, []);
 
-  const handlePrev = () =>
+  const handlePrev = () => {
+    if (!courses.length) return;
     setCurrentIndex((prev) => (prev - 1 + courses.length) % courses.length);
+  };
 
-  const handleNext = () =>
+  const handleNext = () => {
+    if (!courses.length) return;
     setCurrentIndex((prev) => (prev + 1) % courses.length);
+  };
 
-  const visibleCourses = courses.slice(currentIndex, currentIndex + cardsToShow);
+  const visibleCourses = courses.slice(
+    currentIndex,
+    currentIndex + cardsToShow
+  );
+
   const coursesToShow =
     visibleCourses.length < cardsToShow
       ? [
@@ -75,9 +89,10 @@ function LatestCourse() {
           {/* Prev Button */}
           <motion.button
             onClick={handlePrev}
-            className="absolute left-2 bg-gray-800 text-white p-3 rounded-full shadow"
+            className="absolute left-2 bg-gray-800 text-white p-3 rounded-full shadow disabled:opacity-40"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
+            disabled={courses.length === 0}
           >
             ❮
           </motion.button>
@@ -91,7 +106,7 @@ function LatestCourse() {
           >
             {coursesToShow.map((course, index) => (
               <motion.div
-                key={course.id || index}
+                key={course._id || course.id || index}
                 className="bg-white shadow-lg rounded-xl overflow-hidden flex flex-col w-full"
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -121,7 +136,7 @@ function LatestCourse() {
                   </p>
 
                   <a
-                    className="mt-4 px-6 py-2 bg-green-600 text-white font-semibold rounded-md shadow-md hover:bg-green-700 transition"
+                    className="mt-auto px-6 py-2 bg-green-600 text-white font-semibold rounded-md shadow-md hover:bg-green-700 transition"
                     href={course.buylink}
                     target="_blank"
                     rel="noopener noreferrer"
@@ -136,9 +151,10 @@ function LatestCourse() {
           {/* Next Button */}
           <motion.button
             onClick={handleNext}
-            className="absolute right-2 bg-gray-800 text-white p-3 rounded-full shadow"
+            className="absolute right-2 bg-gray-800 text-white p-3 rounded-full shadow disabled:opacity-40"
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
+            disabled={courses.length === 0}
           >
             ❯
           </motion.button>

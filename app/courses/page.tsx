@@ -7,13 +7,13 @@ import { useToast } from "@/hooks/use-toast";
 
 interface Course {
   _id: string;
-  title?: string;
-  image?: {
-    url: string;
-  };
+  banner: string;
+  link?: string;
+  title: string;
+  description?: string;
+  price?: number;
   duration?: string;
-  price?: string;
-  buylink?: string;
+  level?: "beginner" | "intermediate" | "advanced";
 }
 
 export default function CourseDisplay() {
@@ -27,14 +27,17 @@ export default function CourseDisplay() {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        const response = await fetch("/api/getAllCourse");
-        if (!response.ok) {
+        const res = await fetch("/api/courses");
+        if (!res.ok) {
           throw new Error("Failed to fetch courses");
         }
-        const data = await response.json();
-        setCourses(data.allCourse || []);
+        const data = await res.json();
+        setCourses(data.data || []);
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : "Failed to load courses. Please try again.";
+        const errorMessage =
+          err instanceof Error
+            ? err.message
+            : "Failed to load courses. Please try again.";
         console.error("Error fetching courses:", err);
         setError(errorMessage);
 
@@ -49,7 +52,7 @@ export default function CourseDisplay() {
     };
 
     fetchCourses();
-  }, []);
+  }, [toast]);
 
   const showMoreCourses = () => {
     setVisibleCourses((prev) => prev + 9);
@@ -62,8 +65,12 @@ export default function CourseDisplay() {
           Course List
         </h2>
 
-        {loading && <p className="text-center text-primary">Loading courses...</p>}
-        {error && <p className="text-center text-destructive">{error}</p>}
+        {loading && (
+          <p className="text-center text-primary">Loading courses...</p>
+        )}
+        {error && (
+          <p className="text-center text-destructive">{error}</p>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-6">
           {courses.length > 0 ? (
@@ -78,7 +85,10 @@ export default function CourseDisplay() {
               >
                 <div className="w-full h-56 relative bg-card">
                   <Image
-                    src={course.image?.url || "/placeholder.svg?height=224&width=400&query=course"}
+                    src={
+                      course.banner ||
+                      "/placeholder.svg?height=224&width=400&query=course"
+                    }
                     alt={course.title || "Course Image"}
                     fill
                     className="object-contain"
@@ -89,26 +99,34 @@ export default function CourseDisplay() {
                   {course.title || "No Title"}
                 </h3>
 
-                <p className="text-muted-foreground">
-                  Duration: {course.duration || "N/A"}
-                </p>
+                {course.duration && (
+                  <p className="text-muted-foreground">
+                    Duration: {course.duration}
+                  </p>
+                )}
 
                 <p className="text-card-foreground font-semibold">
-                  Price: {course.price || "Free"}
+                  Price: {course.price != null ? `₹${course.price}` : "Free"}
                 </p>
 
-                <a
-                  className="mt-4 px-6 py-2 bg-primary text-primary-foreground font-semibold rounded-md shadow-md hover:opacity-90 transition"
-                  href={course.buylink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Get This Course
-                </a>
+                {course.link && (
+                  <a
+                    className="mt-4 px-6 py-2 bg-primary text-primary-foreground font-semibold rounded-md shadow-md hover:opacity-90 transition"
+                    href={course.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Get This Course
+                  </a>
+                )}
               </motion.div>
             ))
           ) : (
-            !loading && <p className="text-center text-muted-foreground">No courses available.</p>
+            !loading && (
+              <p className="text-center text-muted-foreground">
+                No courses available.
+              </p>
+            )
           )}
         </div>
 
