@@ -4,6 +4,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { toast } from "react-toastify";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -11,11 +12,9 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
     try {
@@ -28,14 +27,15 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setError(data.message || "Registration failed");
+        toast.error(data.message || "Registration failed");
         return;
       }
 
-      // success → redirect to login
+      toast.success("Account created successfully. Please login.");
       router.push("/login");
-    } catch (err: any) {
-      setError("Something went wrong");
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -82,12 +82,6 @@ export default function RegisterPage() {
               autoComplete="new-password"
             />
           </div>
-
-          {error && (
-            <p className="text-sm text-red-600">
-              {error}
-            </p>
-          )}
 
           <button
             type="submit"

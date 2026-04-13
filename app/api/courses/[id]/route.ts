@@ -78,3 +78,45 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     );
   }
 }
+
+// DELETE /api/courses/:id
+interface RouteContext {
+  params: Promise<{ id: string }>;
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: RouteContext
+) {
+  try {
+    await connectDB();
+
+    // ✅ unwrap params
+    const { id } = await params;
+
+    const blog = await Course.findByIdAndDelete(id);
+
+    if (!blog) {
+      return NextResponse.json(
+        { success: false, error: 'course not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(
+      { success: true, data: blog },
+      { status: 200 }
+    );
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Internal server error',
+      },
+      { status: 500 }
+    );
+  }
+}

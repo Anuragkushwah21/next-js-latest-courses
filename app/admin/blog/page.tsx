@@ -1,6 +1,7 @@
-"use client";
+'use client';
 
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 
 type Blog = {
   _id: string;
@@ -26,7 +27,6 @@ const emptyForm: BlogFormValues = {
 export default function AdminBlogsPage() {
   const [blogs, setBlogs] = useState<Blog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
 
   // shared form state
   const [form, setForm] = useState<BlogFormValues>(emptyForm);
@@ -46,7 +46,7 @@ export default function AdminBlogsPage() {
         setBlogs(data.data || []);
       } catch (err) {
         console.error(err);
-        setMessage("Failed to load blogs");
+        toast.error("Failed to load blogs");
       } finally {
         setLoading(false);
       }
@@ -65,15 +65,13 @@ export default function AdminBlogsPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setMessage("");
 
     if (!posterFile && !editingId) {
-      // for create we require file; for edit we can keep old poster
-      setMessage("Please choose poster image file");
+      toast.error("Please choose poster image file");
       return;
     }
     if (!form.title || !form.description) {
-      setMessage("Title and description are required");
+      toast.error("Title and description are required");
       return;
     }
 
@@ -93,22 +91,23 @@ export default function AdminBlogsPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setMessage(data.message || "Failed to save blog");
+        const msg = data.message || "Failed to save blog";
+        toast.error(msg);
       } else {
         const saved: Blog = data.data;
         if (editingId) {
           setBlogs((prev) =>
             prev.map((b) => (b._id === editingId ? saved : b))
           );
-          setMessage("Blog updated");
+          toast.success("Blog updated");
         } else {
           setBlogs((prev) => [saved, ...prev]);
-          setMessage("Blog created");
+          toast.success("Blog created");
         }
         resetForm();
       }
     } catch {
-      setMessage("Error saving blog");
+      toast.error("Error saving blog");
     } finally {
       setSubmitting(false);
     }
@@ -116,21 +115,21 @@ export default function AdminBlogsPage() {
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this blog?")) return;
-    setMessage("");
     try {
       const res = await fetch(`/api/admin/blogs/${id}`, {
         method: "DELETE",
       });
       const data = await res.json();
       if (!res.ok) {
-        setMessage(data.message || "Failed to delete blog");
+        const msg = data.message || "Failed to delete blog";
+        toast.error(msg);
       } else {
         setBlogs((prev) => prev.filter((b) => b._id !== id));
-        setMessage("Blog deleted");
+        toast.success("Blog deleted");
         if (editingId === id) resetForm();
       }
     } catch {
-      setMessage("Error deleting blog");
+      toast.error("Error deleting blog");
     }
   }
 
@@ -141,7 +140,6 @@ export default function AdminBlogsPage() {
       title: blog.title,
       description: blog.description,
     });
-    // user can keep old poster (no file), or choose new file to replace
     setPosterFile(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -165,12 +163,6 @@ export default function AdminBlogsPage() {
               </button>
             )}
           </div>
-
-          {message && (
-            <p className="mb-4 text-xs sm:text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded px-3 py-2">
-              {message}
-            </p>
-          )}
 
           <form
             onSubmit={handleSubmit}
@@ -289,9 +281,7 @@ export default function AdminBlogsPage() {
                           </h3>
                           <p className="text-[11px] sm:text-xs text-gray-500">
                             {blog.createdAt
-                              ? new Date(
-                                  blog.createdAt
-                                ).toLocaleString()
+                              ? new Date(blog.createdAt).toLocaleString()
                               : ""}
                           </p>
                           {blog.link && (

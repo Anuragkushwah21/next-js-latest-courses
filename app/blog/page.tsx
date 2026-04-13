@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 
 type BlogPost = {
   _id: string;
@@ -14,7 +15,6 @@ type BlogPost = {
 const BlogView = () => {
   const [posts, setPosts] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchPosts = async () => {
@@ -30,8 +30,7 @@ const BlogView = () => {
         // data.data should be BlogPost[]
         setPosts(data.data || []);
       } catch (err: any) {
-        console.error("Error fetching blogs:", err);
-        setError(err.message || "Error fetching blogs");
+        toast.error(err.message || "Error fetching blogs");
       } finally {
         setLoading(false);
       }
@@ -44,16 +43,6 @@ const BlogView = () => {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
         <p className="text-lg text-muted-foreground">Loading blogs...</p>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex justify-center items-center min-h-[60vh]">
-        <p className="text-center text-xl font-bold text-destructive">
-          Error: {error}
-        </p>
       </div>
     );
   }

@@ -33,20 +33,42 @@ export async function PUT(req: NextRequest, { params }: Params) {
 }
 
 // DELETE /api/admin/blogs/:id  -> delete blog
-export async function DELETE(_req: NextRequest, { params }: Params) {
+interface RouteContext {
+  params: Promise<{ id: string }>;
+}
+
+export async function DELETE(
+  req: NextRequest,
+  { params }: RouteContext
+) {
   try {
     await connectDB();
-    const blog = await Blog.findByIdAndDelete(params.id);
+
+    // ✅ unwrap params
+    const { id } = await params;
+
+    const blog = await Blog.findByIdAndDelete(id);
 
     if (!blog) {
-      return NextResponse.json({ message: "Blog not found" }, { status: 404 });
+      return NextResponse.json(
+        { success: false, error: 'Blog not found' },
+        { status: 404 }
+      );
     }
 
-    return NextResponse.json({ message: "Blog deleted" }, { status: 200 });
-  } catch (error: any) {
-    console.error("DELETE /api/admin/blogs/:id error", error);
     return NextResponse.json(
-      { message: error.message || "Failed to delete blog" },
+      { success: true, data: blog },
+      { status: 200 }
+    );
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Internal server error',
+      },
       { status: 500 }
     );
   }

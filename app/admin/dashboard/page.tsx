@@ -52,7 +52,7 @@ export default function AdminDashboardPage() {
           <div>
             <h1 className="text-3xl font-bold">Admin Dashboard</h1>
             <p className="text-sm text-gray-600">
-              Manage typing data, blogs, courses, and users from one place.
+              Manage typing data, blogs, courses, users and contact messages from one place.
             </p>
           </div>
 
@@ -80,6 +80,12 @@ export default function AdminDashboardPage() {
               className="px-3 py-2 text-sm rounded-md bg-gray-800 text-white hover:bg-gray-900"
             >
               View Users
+            </Link>
+            <Link
+              href="/admin/contacts"
+              className="px-3 py-2 text-sm rounded-md bg-pink-600 text-white hover:bg-pink-700"
+            >
+              View Contacts
             </Link>
           </div>
         </header>
@@ -113,7 +119,7 @@ export default function AdminDashboardPage() {
         </section>
 
         {/* Management cards */}
-        <section className="grid gap-4 lg:grid-cols-3">
+        <section className="grid gap-4 lg:grid-cols-4">
           <ManageCard
             title="Typing Data"
             description="Create or update typing records for students in Hindi and English."
@@ -131,6 +137,12 @@ export default function AdminDashboardPage() {
             description="Add new courses, edit details, and manage pricing."
             href="/admin/courses"
             cta="Go to Courses"
+          />
+          <ManageCard
+            title="Contact Messages"
+            description="View and review messages sent from the contact form."
+            href="/admin/contacts"
+            cta="View Messages"
           />
         </section>
 

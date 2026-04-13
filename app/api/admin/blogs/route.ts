@@ -2,6 +2,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { Blog } from "@/lib/models/Blog";
+import { writeFile, mkdir } from "fs/promises";
+import path from "path";
 
 export async function GET() {
   try {
@@ -36,17 +38,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // For now, convert file to a fake URL.
-    // In real app, upload `posterFile` to Cloudinary/S3 and get URL.
-    let posterUrl: string | undefined;
+    // ==== FILE SAVE TO public/uploads (like courses) ====
+    let posterPath: string | undefined;
 
     if (posterFile) {
-      // example: derive fake URL from name
-      posterUrl = `https://example.com/uploads/${encodeURIComponent(
-        posterFile.name
-      )}`;
-      // real upload: read file -> buffer -> provider SDK
+      const bytes = await posterFile.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      const uploadsDir = path.join(process.cwd(), "public", "uploads");
+      await mkdir(uploadsDir, { recursive: true });
+
+      const safeName = posterFile.name.replace(/\s+/g, "-");
+      const filePath = path.join(uploadsDir, safeName);
+
+      await writeFile(filePath, buffer);
+
+      posterPath = `/uploads/${encodeURIComponent(safeName)}`;
     }
+    // ====================================================
 
     if (id) {
       // update
@@ -57,7 +66,7 @@ export async function POST(req: NextRequest) {
       if (link) update.link = link;
       else update.link = undefined;
 
-      if (posterUrl) update.poster = posterUrl; // only overwrite if new file
+      if (posterPath) update.poster = posterPath; // sirf naya file ho to overwrite
 
       const blog = await Blog.findByIdAndUpdate(id, update, {
         new: true,
@@ -74,21 +83,15 @@ export async function POST(req: NextRequest) {
     }
 
     // create requires poster file
-    if (!posterFile) {
+    if (!posterFile || !posterPath) {
       return NextResponse.json(
         { message: "poster file is required" },
         { status: 400 }
       );
     }
-    if (!posterUrl) {
-      return NextResponse.json(
-        { message: "Failed to process poster" },
-        { status: 400 }
-      );
-    }
 
     const blog = await Blog.create({
-      poster: posterUrl,
+      poster: posterPath,          // e.g. "/uploads/my-blog-poster.jpg"
       link: link || undefined,
       title,
       description,

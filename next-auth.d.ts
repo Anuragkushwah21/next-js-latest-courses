@@ -21,3 +21,5 @@ declare module "next-auth" {
     role: string
   }
 }
+
+export {getServerSession} from "next-auth/next"

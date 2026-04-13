@@ -8,6 +8,8 @@ import Footer from "@/components/footer";
 import SessionProviderWrapper from "./providers/SessionProviderWrapper";
 import { getServerSession } from "next-auth";      // <- change import
 import { authOptions } from "@/lib/auth";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -46,6 +48,7 @@ export default async function RootLayout({
         <SessionProviderWrapper session={session}>
           <Navbar />
           {children}
+           <ToastContainer position="top-right" autoClose={3000} />
           <Footer />
         </SessionProviderWrapper>
         <Analytics />

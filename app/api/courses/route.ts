@@ -1,15 +1,11 @@
-// app/api/admin/courses/route.ts
+// app/api/courses/route.ts  (ya jahan bhi tumhara POST hai)
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongodb";
 import { Course } from "@/lib/models/Course";
 import { requireAdmin } from "@/lib/auth-helpers";
+import { writeFile, mkdir } from "fs/promises";
+import path from "path";
 
-// export const config = {
-//   api: {
-//     bodyParser: false,     // required for file uploads (FormData)
-//     sizeLimit: "10mb",     // increase body limit
-//   },
-// };
 
 // GET /api/admin/courses  -> all courses
 export async function GET() {
@@ -18,7 +14,7 @@ export async function GET() {
     const courses = await Course.find().sort({ createdAt: -1 });
     return NextResponse.json({ data: courses }, { status: 200 });
   } catch (error) {
-    console.error("GET /api/admin/courses error", error);
+    console.error("GET /api/courses error", error);
     return NextResponse.json(
       { message: "Server error" },
       { status: 500 }
@@ -26,7 +22,6 @@ export async function GET() {
   }
 }
 
-// POST /api/admin/courses -> create OR update (if id is sent)
 export async function POST(req: NextRequest) {
   try {
     const adminCheck = await requireAdmin(req);
@@ -62,14 +57,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    let bannerUrl: string | undefined;
+    // ====== FILE SAVE LOGIC (PUBLIC/UPLOADS) ======
+    let bannerPath: string | undefined;
 
-    // TODO: replace with real upload (Cloudinary/S3/etc.)
     if (bannerFile) {
-      bannerUrl = `https://example.com/courses/${encodeURIComponent(
-        bannerFile.name
-      )}`;
+      const bytes = await bannerFile.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      const uploadsDir = path.join(process.cwd(), "public", "uploads");
+      await mkdir(uploadsDir, { recursive: true });
+
+      const safeName = bannerFile.name.replace(/\s+/g, "-");
+      const filePath = path.join(uploadsDir, safeName);
+
+      await writeFile(filePath, buffer);
+
+      // URL path jo frontend me use hoga
+      bannerPath = `/uploads/${encodeURIComponent(safeName)}`;
     }
+    // ==============================================
 
     const price =
       priceStr && !Number.isNaN(Number(priceStr))
@@ -77,7 +83,6 @@ export async function POST(req: NextRequest) {
         : undefined;
 
     if (id) {
-      // UPDATE
       const update: any = {
         title,
         link: link || undefined,
@@ -87,8 +92,8 @@ export async function POST(req: NextRequest) {
         level: level || undefined,
       };
 
-      if (bannerUrl) {
-        update.banner = bannerUrl;
+      if (bannerPath) {
+        update.banner = bannerPath;
       }
 
       const updated = await Course.findByIdAndUpdate(id, update, {
@@ -108,8 +113,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // CREATE
-    if (!bannerFile || !bannerUrl) {
+    if (!bannerFile || !bannerPath) {
       return NextResponse.json(
         { message: "banner file is required" },
         { status: 400 }
@@ -117,7 +121,7 @@ export async function POST(req: NextRequest) {
     }
 
     const course = await Course.create({
-      banner: bannerUrl,
+      banner: bannerPath,
       link: link || undefined,
       title,
       description: description || undefined,
@@ -131,7 +135,7 @@ export async function POST(req: NextRequest) {
       { status: 201 }
     );
   } catch (error) {
-    console.error("POST /api/admin/courses error", error);
+    console.error("POST /api/courses error", error);
     return NextResponse.json(
       { message: "Server error" },
       { status: 500 }

@@ -1,9 +1,9 @@
-// models/Course.ts
+// lib/models/Course.ts
 import mongoose, { Schema, Document, models, model } from "mongoose";
 
 export interface ICourse extends Document {
-  banner: string;                 // URL or path
-  link?: string;                  // optional
+  banner: string;                 // path like "/uploads/file.png"
+  link?: string;
   title: string;
   description?: string;
   price?: number;

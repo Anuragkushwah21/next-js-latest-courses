@@ -7,38 +7,43 @@ type Params = {
   params: { id: string };
 };
 
-// DELETE /api/admin/typing/:id
-export async function DELETE(req: NextRequest, { params }: Params) {
-  try {
-    const adminCheck = await requireAdmin(req);
-    if (!adminCheck.ok) {
-      return NextResponse.json(
-        { message: adminCheck.message },
-        { status: adminCheck.status }
-      );
-    }
+// DELETE /api/typing/:id
+interface RouteContext {
+  params: Promise<{ id: string }>;
+}
 
+export async function DELETE(
+  req: NextRequest,
+  { params }: RouteContext
+) {
+  try {
     await connectDB();
 
-    const { id } = params;
+    // ✅ unwrap params
+    const { id } = await params;
 
-    const deleted = await TypingParagraph.findByIdAndDelete(id);
+    const blog = await TypingParagraph.findByIdAndDelete(id);
 
-    if (!deleted) {
+    if (!blog) {
       return NextResponse.json(
-        { message: "Paragraph not found" },
+        { success: false, error: 'Typing Paragraph not found' },
         { status: 404 }
       );
     }
 
     return NextResponse.json(
-      { message: "Paragraph deleted successfully" },
+      { success: true, data: blog },
       { status: 200 }
     );
   } catch (error) {
-    console.error("DELETE /api/admin/typing/[id] error", error);
     return NextResponse.json(
-      { message: "Server error" },
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Internal server error',
+      },
       { status: 500 }
     );
   }

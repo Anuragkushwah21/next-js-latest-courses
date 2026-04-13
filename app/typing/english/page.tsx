@@ -2,6 +2,8 @@
 "use client";
 
 import { useEffect, useState, useMemo, JSX } from "react";
+import { useSession } from "next-auth/react";
+import { toast } from "react-toastify";
 
 type TypingParagraph = {
   _id: string;
@@ -31,9 +33,11 @@ export default function EnglishTypingPage() {
   const [saveMessage, setSaveMessage] = useState("");
   const [hasError, setHasError] = useState(false);
 
-  // TODO: actual logged-in user
-  const userId = "demo-user-id";
-  const userName = "Demo User";
+ 
+  const { data: session } = useSession();
+
+  const userId = (session?.user as any)?._id || (session?.user as any)?.id;
+  const userName = session?.user?.name || "Guest";
 
   // 1) English paragraphs fetch
   useEffect(() => {
@@ -152,7 +156,7 @@ export default function EnglishTypingPage() {
       setSaving(true);
       setSaveMessage("");
 
-      const res = await fetch("/api/typing-records", {
+      const res = await fetch("/api/admin/typing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -168,12 +172,12 @@ export default function EnglishTypingPage() {
 
       const result = await res.json();
       if (!res.ok) {
-        setSaveMessage(result.message || "Failed to save record");
+        toast.error(result.message || "Failed to save record");
       } else {
-        setSaveMessage("Result saved successfully!");
+        toast.success("Result saved successfully!");
       }
     } catch {
-      setSaveMessage("Error saving result");
+      toast.error("Error saving result");
     } finally {
       setSaving(false);
     }

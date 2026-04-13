@@ -4,45 +4,49 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { signIn } from "next-auth/react";
-import { getSession } from "next-auth/react";
+import { signIn, getSession } from "next-auth/react";
+import { toast } from "react-toastify";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
-    const res = await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    });
+    try {
+      const res = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
+      });
 
-    if (!res || res.error) {
+      if (!res || res.error) {
+        toast.error("Invalid email or password");
+        setLoading(false);
+        return;
+      }
+
+      const session = await getSession();
+      const role = (session?.user as any)?.role;
+
+      toast.success("Logged in successfully");
+
+      if (role === "admin") {
+        router.push("/admin/dashboard");
+      } else {
+        router.push("/");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Something went wrong. Please try again.");
+    } finally {
       setLoading(false);
-      setError("Invalid email or password");
-      return;
     }
-
-    const session = await getSession();
-    const role = (session?.user as any)?.role;
-
-    if (role === "admin") {
-      router.push("/admin/dashboard");
-    } else {
-      router.push("/");
-    }
-
-    setLoading(false);
   }
-
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
@@ -73,10 +77,6 @@ export default function LoginPage() {
               autoComplete="current-password"
             />
           </div>
-
-          {error && (
-            <p className="text-sm text-red-600">{error}</p>
-          )}
 
           <button
             type="submit"

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useMemo, JSX } from "react";
+import { useSession } from "next-auth/react";
 
 type TypingParagraph = {
   _id: string;
@@ -30,9 +31,10 @@ export default function HindiTypingPage() {
   const [saveMessage, setSaveMessage] = useState("");
   const [hasError, setHasError] = useState(false); // wrong key press indicator
 
-  // TODO: actual logged-in user
-  const userId = "demo-user-id";
-  const userName = "Demo User";
+  const { data: session } = useSession();
+
+  const userId = (session?.user as any)?._id || (session?.user as any)?.id;
+  const userName = session?.user?.name || "Guest";
 
   // 1) Hindi paragraphs fetch
   useEffect(() => {
@@ -157,7 +159,7 @@ export default function HindiTypingPage() {
       setSaving(true);
       setSaveMessage("");
 
-      const res = await fetch("/api/typing-records", {
+      const res = await fetch("/api/admin/typing", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

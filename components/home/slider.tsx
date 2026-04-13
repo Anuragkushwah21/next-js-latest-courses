@@ -1,47 +1,45 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from "react"
-import axios from "axios"
+import { useState, useEffect } from "react";
+
+type SliderImage = {
+  url: string;
+};
+
+const STATIC_IMAGES: SliderImage[] = [
+  { url: "/img/slider/1.jpg" },
+  { url: "/img/slider/2.png" },
+  { url: "/img/slider/3.png" },
+];
 
 export default function Slider() {
-  const [images, setImages] = useState<any[]>([])
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [isHovered, setIsHovered] = useState(false)
-
-  // Fetch images from API
-  useEffect(() => {
-    const fetchImages = async () => {
-      try {
-        const response = await axios.get("/api/viewallimage")
-        setImages(response.data.data)
-      } catch (error) {
-        console.error("Error fetching images:", error)
-      }
-    }
-    fetchImages()
-  }, [])
-
-  const nextSlide = () => {
-    if (images.length === 0) return
-    setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length)
-  }
-
-  const prevSlide = () => {
-    if (images.length === 0) return
-    setCurrentIndex((prevIndex) => (prevIndex - 1 + images.length) % images.length)
-  }
+  const [images] = useState<SliderImage[]>(STATIC_IMAGES);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
 
   // Auto-slide
   useEffect(() => {
     if (!isHovered && images.length > 0) {
-      const interval = setInterval(nextSlide, 3000)
-      return () => clearInterval(interval)
+      const interval = setInterval(() => {
+        setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
+      }, 3000);
+      return () => clearInterval(interval);
     }
-  }, [currentIndex, isHovered, images])
+  }, [isHovered, images.length]);
 
   if (images.length === 0) {
-    return <div className="text-center p-4">Loading...</div>
+    return <div className="text-center p-4">Loading...</div>;
   }
+
+  const nextSlide = () => {
+    if (images.length === 0) return;
+    setCurrentIndex((prevIndex) => (prevIndex + 1) % images.length);
+  };
+
+  const prevSlide = () => {
+    if (images.length === 0) return;
+    setCurrentIndex((prevIndex) => (prevIndex - 1 + images.length) % images.length);
+  };
 
   return (
     <div
@@ -54,7 +52,7 @@ export default function Slider() {
         {images.map((image, index) => (
           <img
             key={index}
-            src={image.image.url || "/placeholder.svg"}
+            src={image.url || "/placeholder.svg"}
             alt={`Slide ${index + 1}`}
             className={`absolute w-full h-auto max-h-[550px] object-cover transition-opacity duration-1000 ease-in-out ${
               index === currentIndex ? "opacity-100 relative" : "opacity-0 absolute"
@@ -91,5 +89,5 @@ export default function Slider() {
         ))}
       </div>
     </div>
-  )
+  );
 }

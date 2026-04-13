@@ -1,7 +1,9 @@
 // app/admin/courses/page.tsx
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 
 type Course = {
   _id: string;
@@ -37,7 +39,6 @@ const emptyForm: CourseFormValues = {
 export default function AdminCoursesPage() {
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
 
   const [form, setForm] = useState<CourseFormValues>(emptyForm);
   const [bannerFile, setBannerFile] = useState<File | null>(null);
@@ -61,7 +62,7 @@ export default function AdminCoursesPage() {
         setCourses(data.data || []);
       } catch (err: any) {
         console.error("Error fetching courses:", err);
-        setMessage(err.message || "Error fetching courses");
+        toast.error(err.message || "Error fetching courses");
       } finally {
         setLoading(false);
       }
@@ -82,14 +83,13 @@ export default function AdminCoursesPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setMessage("");
 
     if (!bannerFile && !editingId) {
-      setMessage("Banner file is required for new course");
+      toast.error("Banner file is required for new course");
       return;
     }
     if (!form.title) {
-      setMessage("Title is required");
+      toast.error("Title is required");
       return;
     }
 
@@ -113,22 +113,22 @@ export default function AdminCoursesPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        setMessage(data.message || "Failed to save course");
+        toast.error(data.message || "Failed to save course");
       } else {
         const saved: Course = data.data;
         if (editingId) {
           setCourses((prev) =>
             prev.map((c) => (c._id === editingId ? saved : c))
           );
-          setMessage("Course updated");
+          toast.success("Course updated");
         } else {
           setCourses((prev) => [saved, ...prev]);
-          setMessage("Course created");
+          toast.success("Course created");
         }
         resetForm();
       }
     } catch {
-      setMessage("Error creating/updating course");
+      toast.error("Error creating/updating course");
     } finally {
       setSubmitting(false);
     }
@@ -136,22 +136,21 @@ export default function AdminCoursesPage() {
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this course?")) return;
-    setMessage("");
 
     try {
-      const res = await fetch(`/api/admin/courses/${id}`, {
+      const res = await fetch(`/api/courses/${id}`, {
         method: "DELETE",
       });
       const data = await res.json();
       if (!res.ok) {
-        setMessage(data.message || "Failed to delete course");
+        toast.error(data.message || "Failed to delete course");
       } else {
         setCourses((prev) => prev.filter((c) => c._id !== id));
-        setMessage("Course deleted");
+        toast.success("Course deleted");
         if (editingId === id) resetForm();
       }
     } catch {
-      setMessage("Error deleting course");
+      toast.error("Error deleting course");
     }
   }
 
@@ -188,12 +187,6 @@ export default function AdminCoursesPage() {
               </button>
             )}
           </div>
-
-          {message && (
-            <p className="mb-4 text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded px-3 py-2">
-              {message}
-            </p>
-          )}
 
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
@@ -336,9 +329,11 @@ export default function AdminCoursesPage() {
                 >
                   <div className="w-full sm:w-32 md:w-40">
                     {course.banner && (
-                      <img
+                      <Image
                         src={course.banner}
                         alt={course.title}
+                        width={160}
+                        height={112}
                         className="w-full h-28 sm:h-24 md:h-28 object-cover rounded-md border"
                       />
                     )}

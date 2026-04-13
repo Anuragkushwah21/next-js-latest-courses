@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "react-toastify";
 
 type Paragraph = {
   _id: string;
@@ -32,7 +33,6 @@ export default function AdminTypingPage() {
 
   const [paraForm, setParaForm] = useState<ParagraphForm>(emptyParagraphForm);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // load paragraphs
@@ -43,13 +43,15 @@ export default function AdminTypingPage() {
         const params = new URLSearchParams();
         if (filterLang !== "all") params.set("language", filterLang);
 
-        const res = await fetch(
-          `/api/typing?${params.toString()}`
-        );
+        const res = await fetch(`/api/typing?${params.toString()}`);
         const json = await res.json();
+        if (!res.ok) {
+          throw new Error(json.message || "Failed to load paragraphs");
+        }
         setParagraphs(json.data || []);
-      } catch (e) {
+      } catch (e: any) {
         console.error(e);
+        toast.error(e.message || "Error loading paragraphs");
       } finally {
         setLoading(false);
       }
@@ -68,51 +70,47 @@ export default function AdminTypingPage() {
   function resetForm() {
     setParaForm(emptyParagraphForm);
     setEditingId(null);
-    setMessage("");
   }
 
- async function handleParagraphSubmit(e: React.FormEvent) {
-  e.preventDefault();
-  setMessage("");
+  async function handleParagraphSubmit(e: React.FormEvent) {
+    e.preventDefault();
 
-  if (!paraForm.title || !paraForm.text) {
-    setMessage("Title and paragraph text are required");
-    return;
-  }
+    if (!paraForm.title || !paraForm.text) {
+      toast.error("Title and paragraph text are required");
+      return;
+    }
 
-  try {
-    setSaving(true);
-    const res = await fetch("/api/typing", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: editingId || undefined,     // edit ke time id, nahi to undefined
-        language: paraForm.language,
-        title: paraForm.title,
-        text: paraForm.text,
-      }),
-    });
+    try {
+      setSaving(true);
+      const res = await fetch("/api/typing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingId || undefined,
+          language: paraForm.language,
+          title: paraForm.title,
+          text: paraForm.text,
+        }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
       if (!res.ok) {
-        setMessage(data.message || "Failed to save paragraph");
+        toast.error(data.message || "Failed to save paragraph");
       } else {
         const saved: Paragraph = data.data;
         if (editingId) {
-          // update in list
           setParagraphs((prev) =>
             prev.map((p) => (p._id === editingId ? saved : p))
           );
-          setMessage("Paragraph updated");
+          toast.success("Paragraph updated");
         } else {
-          // prepend new
           setParagraphs((prev) => [saved, ...prev]);
-          setMessage("Paragraph created");
+          toast.success("Paragraph created");
         }
         resetForm();
       }
     } catch {
-      setMessage("Error saving paragraph");
+      toast.error("Error saving paragraph");
     } finally {
       setSaving(false);
     }
@@ -130,7 +128,6 @@ export default function AdminTypingPage() {
 
   async function handleDelete(id: string) {
     if (!confirm("Delete this paragraph?")) return;
-    setMessage("");
 
     try {
       const res = await fetch(`/api/typing/${id}`, {
@@ -138,14 +135,14 @@ export default function AdminTypingPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setMessage(data.message || "Failed to delete paragraph");
+        toast.error(data.message || "Failed to delete paragraph");
       } else {
         setParagraphs((prev) => prev.filter((p) => p._id !== id));
-        setMessage("Paragraph deleted");
+        toast.success("Paragraph deleted");
         if (editingId === id) resetForm();
       }
     } catch {
-      setMessage("Error deleting paragraph");
+      toast.error("Error deleting paragraph");
     }
   }
 
@@ -170,12 +167,6 @@ export default function AdminTypingPage() {
               </button>
             )}
           </div>
-
-          {message && (
-            <p className="text-sm text-blue-700 bg-blue-50 border border-blue-200 rounded px-3 py-2">
-              {message}
-            </p>
-          )}
 
           <form
             onSubmit={handleParagraphSubmit}

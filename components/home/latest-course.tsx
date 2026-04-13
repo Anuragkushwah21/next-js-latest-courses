@@ -2,9 +2,21 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import Image from "next/image";
+
+type Course = {
+  _id?: string;
+  id?: string;
+  banner: string;
+  title: string;
+  duration?: string;
+  price?: number;
+  image?: { url?: string };
+  buylink?: string;
+};
 
 function LatestCourse() {
-  const [courses, setCourses] = useState<any[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -15,12 +27,14 @@ function LatestCourse() {
     const fetchCourses = async () => {
       try {
         setLoading(true);
+        setError("");
         const res = await fetch("/api/courses");
         if (!res.ok) {
           throw new Error("Failed to fetch");
         }
         const data = await res.json();
-        setCourses(data?.recentCourses || []);
+        const list: Course[] = data?.recentCourses || data?.data || [];
+        setCourses(list);
       } catch (err) {
         console.error("Error fetching courses:", err);
         setError("Failed to load courses. Please try again.");
@@ -62,17 +76,14 @@ function LatestCourse() {
     setCurrentIndex((prev) => (prev + 1) % courses.length);
   };
 
-  const visibleCourses = courses.slice(
-    currentIndex,
-    currentIndex + cardsToShow
-  );
+  const visibleCourses = courses.slice(currentIndex, currentIndex + cardsToShow);
 
   const coursesToShow =
     visibleCourses.length < cardsToShow
       ? [
-          ...visibleCourses,
-          ...courses.slice(0, cardsToShow - visibleCourses.length),
-        ]
+        ...visibleCourses,
+        ...courses.slice(0, cardsToShow - visibleCourses.length),
+      ]
       : visibleCourses;
 
   return (
@@ -106,19 +117,21 @@ function LatestCourse() {
           >
             {coursesToShow.map((course, index) => (
               <motion.div
-                key={course._id || course.id || index}
+                key={`${course._id || course.id || "course"}-${index}`}
                 className="bg-white shadow-lg rounded-xl overflow-hidden flex flex-col w-full"
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: index * 0.2 }}
                 viewport={{ once: true }}
               >
-                <img
+                <Image
                   src={
-                    course.image?.url ||
+                    course.banner ||
                     "/placeholder.svg?height=224&width=400&query=course"
                   }
-                  alt={course.title}
+                  alt={course.title || "Course image"}
+                  width={400}
+                  height={224}
                   className="w-full h-56 object-contain bg-white"
                 />
 
@@ -127,22 +140,28 @@ function LatestCourse() {
                     {course.title}
                   </h3>
 
-                  <p className="text-gray-600 mb-1">
-                    Duration: {course.duration}
-                  </p>
+                  {course.duration && (
+                    <p className="text-gray-600 mb-1">
+                      Duration: {course.duration}
+                    </p>
+                  )}
 
-                  <p className="text-gray-800 font-bold mb-4">
-                    ₹{course.price}
-                  </p>
+                  {course.price != null && (
+                    <p className="text-gray-800 font-bold mb-4">
+                      ₹{course.price}
+                    </p>
+                  )}
 
-                  <a
-                    className="mt-auto px-6 py-2 bg-green-600 text-white font-semibold rounded-md shadow-md hover:bg-green-700 transition"
-                    href={course.buylink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Get This Course
-                  </a>
+                  {course.buylink && (
+                    <a
+                      className="mt-auto px-6 py-2 bg-green-600 text-white font-semibold rounded-md shadow-md hover:bg-green-700 transition"
+                      href={course.buylink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Get This Course
+                    </a>
+                  )}
                 </div>
               </motion.div>
             ))}
